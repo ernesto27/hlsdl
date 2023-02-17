@@ -1,9 +1,14 @@
 package hlsdl
 
 import (
+	"bufio"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
+	"os"
+	"path"
+	"strconv"
 	"strings"
 
 	"github.com/grafov/m3u8"
@@ -19,6 +24,28 @@ func parseHlsSegments(hlsURL string, headers map[string]string) ([]*Segment, err
 	if err != nil {
 		return nil, err
 	}
+
+	// If url is of type master, obtain the media url
+	if t == m3u8.MASTER {
+		masterpl := p.(*m3u8.MasterPlaylist)
+
+		variant, err := showOptionsMasterFormat(masterpl)
+		if err != nil {
+			return nil, err
+		}
+
+		newURL, err := getURLMediaFormatBase(hlsURL)
+		if err != nil {
+			return nil, err
+		}
+
+		p, t, err = getM3u8ListType(newURL+"/"+variant.URI, headers)
+		if err != nil {
+			return nil, err
+		}
+
+	}
+
 	if t != m3u8.MEDIA {
 		return nil, errors.New("No support the m3u8 format")
 	}
@@ -93,4 +120,52 @@ func getM3u8ListType(url string, headers map[string]string) (m3u8.Playlist, m3u8
 	}
 
 	return p, t, nil
+}
+
+func showOptionsMasterFormat(masterpl *m3u8.MasterPlaylist) (*m3u8.Variant, error) {
+	fmt.Println("Choose an option resolution:")
+	for i, option := range masterpl.Variants {
+		if option.Resolution != "" {
+			fmt.Printf("%d. %s\n", i+1, option.Resolution)
+		}
+	}
+
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Print("Enter option number: ")
+	input, _ := reader.ReadString('\n')
+
+	input = strings.TrimSpace(input)
+	optionNum, err := strconv.Atoi(input)
+	if err != nil {
+		fmt.Println("Invalid input:", input)
+		return nil, err
+	}
+
+	if optionNum < 1 || optionNum > len(masterpl.Variants) {
+		fmt.Println("Invalid option number:", optionNum)
+		return nil, err
+	}
+
+	return masterpl.Variants[optionNum-1], nil
+}
+
+func getURLMediaFormatBase(hlsURL string) (string, error) {
+	u, err := url.Parse(hlsURL)
+	if err != nil {
+		fmt.Println("Error parsing URL:", err)
+		return "", err
+	}
+
+	dir := path.Dir(u.Path)
+
+	_, file := path.Split(dir)
+	if idx := strings.Index(file, "?"); idx != -1 {
+		file = file[:idx]
+		dir = path.Join(path.Dir(dir), file)
+	}
+
+	u.Path = dir
+	u.RawQuery = ""
+	newURL := u.String()
+	return newURL, nil
 }
