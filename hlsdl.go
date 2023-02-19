@@ -24,14 +24,15 @@ func init() {
 
 // HlsDl present a HLS downloader
 type HlsDl struct {
-	client    *http.Client
-	headers   map[string]string
-	dir       string
-	hlsURL    string
-	workers   int
-	bar       *pb.ProgressBar
-	enableBar bool
-	filename  string
+	client                *http.Client
+	headers               map[string]string
+	dir                   string
+	hlsURL                string
+	workers               int
+	bar                   *pb.ProgressBar
+	enableBar             bool
+	filename              string
+	getURLMediaFormatBase func(string) (string, error)
 }
 
 type Segment struct {
@@ -223,7 +224,7 @@ func (hlsDl *HlsDl) join(dir string, segments []*Segment) (string, error) {
 }
 
 func (hlsDl *HlsDl) Download() (string, error) {
-	segs, err := parseHlsSegments(hlsDl.hlsURL, hlsDl.headers)
+	segs, err := parseHlsSegments(hlsDl.hlsURL, hlsDl.headers, hlsDl.getURLMediaFormatBase)
 	if err != nil {
 		return "", err
 	}
@@ -242,4 +243,8 @@ func (hlsDl *HlsDl) Download() (string, error) {
 	}
 
 	return filepath, nil
+}
+
+func (HlsDl *HlsDl) SetGetURLMediaFormatBase(f func(string) (string, error)) {
+	HlsDl.getURLMediaFormatBase = f
 }

@@ -14,7 +14,7 @@ import (
 	"github.com/grafov/m3u8"
 )
 
-func parseHlsSegments(hlsURL string, headers map[string]string) ([]*Segment, error) {
+func parseHlsSegments(hlsURL string, headers map[string]string, f func(string) (string, error)) ([]*Segment, error) {
 	baseURL, err := url.Parse(hlsURL)
 	if err != nil {
 		return nil, errors.New("Invalid m3u8 url")
@@ -25,7 +25,7 @@ func parseHlsSegments(hlsURL string, headers map[string]string) ([]*Segment, err
 		return nil, err
 	}
 
-	// If url is of type master, obtain the media url
+	// If url is of type master, obtain the media playlist
 	if t == m3u8.MASTER {
 		masterpl := p.(*m3u8.MasterPlaylist)
 
@@ -33,17 +33,13 @@ func parseHlsSegments(hlsURL string, headers map[string]string) ([]*Segment, err
 		if err != nil {
 			return nil, err
 		}
-
-		newURL, err := getURLMediaFormatBase(hlsURL)
+		newURL, err := getURLMediaFormatBase(hlsURL, f)
 		if err != nil {
 			return nil, err
 		}
 
-		p, t, err = getM3u8ListType(newURL+"/"+variant.URI, headers)
-		if err != nil {
-			return nil, err
-		}
-
+		urlFinal := newURL + variant.URI
+		return parseHlsSegments(urlFinal, headers, f)
 	}
 
 	if t != m3u8.MEDIA {
@@ -149,7 +145,11 @@ func showOptionsMasterFormat(masterpl *m3u8.MasterPlaylist) (*m3u8.Variant, erro
 	return masterpl.Variants[optionNum-1], nil
 }
 
-func getURLMediaFormatBase(hlsURL string) (string, error) {
+func getURLMediaFormatBase(hlsURL string, f func(string) (string, error)) (string, error) {
+	if f != nil {
+		return f(hlsURL)
+	}
+
 	u, err := url.Parse(hlsURL)
 	if err != nil {
 		fmt.Println("Error parsing URL:", err)

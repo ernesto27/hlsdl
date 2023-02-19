@@ -5,7 +5,7 @@ import (
 )
 
 func Test(t *testing.T) {
-	_, err := parseHlsSegments("https://cdn.theoplayer.com/video/big_buck_bunny_encrypted/stream-800/index.m3u8", nil)
+	_, err := parseHlsSegments("https://cdn.theoplayer.com/video/big_buck_bunny_encrypted/stream-800/index.m3u8", nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

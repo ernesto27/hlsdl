@@ -7,7 +7,7 @@ import (
 )
 
 func TestDescrypt(t *testing.T) {
-	segs, err := parseHlsSegments("https://cdn.theoplayer.com/video/big_buck_bunny_encrypted/stream-800/index.m3u8", nil)
+	segs, err := parseHlsSegments("https://cdn.theoplayer.com/video/big_buck_bunny_encrypted/stream-800/index.m3u8", nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
